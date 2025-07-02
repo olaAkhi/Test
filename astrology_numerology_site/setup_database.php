@@ -1,0 +1,144 @@
+<?php
+
+// Increase execution time and memory limit for this script, if needed for large schemas or seeding.
+ini_set('max_execution_time', 300); // 5 minutes
+ini_set('memory_limit', '256M');
+
+echo "Database Setup Script Started...\n";
+
+// Autoloader for classes like ServiceController, ServiceModel
+spl_autoload_register(function ($class_name) {
+    $base_dir = __DIR__ . '/src/'; // Assuming this script is in the project root
+    $file = $base_dir . str_replace('\\', '/', $class_name) . '.php';
+    if (file_exists($file)) {
+        require_once $file;
+    } else {
+        // Fallback for Database class if it's not namespaced or in a different location
+        $core_file = __DIR__ . '/src/core/' . $class_name . '.php';
+        if (file_exists($core_file)) {
+            require_once $core_file;
+        }
+    }
+});
+
+// Load Database Configuration
+$configPath = __DIR__ . '/config/database.php';
+if (!file_exists($configPath)) {
+    die("ERROR: Database configuration file not found at {$configPath}\n");
+}
+require_once $configPath;
+
+// Path to the SQL schema file
+$schemaFilePath = __DIR__ . '/database_schema.sql';
+if (!file_exists($schemaFilePath)) {
+    die("ERROR: SQL schema file not found at {$schemaFilePath}\n");
+}
+
+try {
+    // 1. Connect to MySQL server (without selecting a specific database yet)
+    echo "Attempting to connect to MySQL server...\n";
+    $serverPdo = new PDO(DSN_SERVER, DB_USER, DB_PASS, $GLOBALS['pdo_options']);
+    echo "Successfully connected to MySQL server.\n";
+
+    // 2. Create the database if it doesn't exist
+    echo "Checking if database '" . DB_NAME . "' exists...\n";
+    $stmt = $serverPdo->query("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '" . DB_NAME . "'");
+    if ($stmt->fetch()) {
+        echo "Database '" . DB_NAME . "' already exists.\n";
+    } else {
+        echo "Database '" . DB_NAME . "' does not exist. Creating...\n";
+        $serverPdo->exec("CREATE DATABASE `" . DB_NAME . "` CHARACTER SET " . DB_CHARSET . " COLLATE " . DB_CHARSET . "_unicode_ci;");
+        echo "Database '" . DB_NAME . "' created successfully.\n";
+    }
+    // Close server-only connection
+    $serverPdo = null;
+
+    // 3. Connect to the specific database
+    echo "Connecting to database '" . DB_NAME . "'...\n";
+    $dbPdo = Database::getInstance(); // This uses DSN_DB
+    echo "Successfully connected to database '" . DB_NAME . "'.\n";
+
+    // 4. Create tables using the schema.sql file
+    echo "Reading SQL schema from {$schemaFilePath}...\n";
+    $sqlSchema = file_get_contents($schemaFilePath);
+
+    // Remove comments and split into individual statements
+    $sqlSchema = preg_replace('/--.*$/m', '', $sqlSchema); // Remove SQL comments
+    $sqlSchema = preg_replace('/^\s*$/m', '', $sqlSchema);   // Remove empty lines
+    $sqlStatements = explode(';', $sqlSchema);
+    $sqlStatements = array_filter(array_map('trim', $sqlStatements));
+
+    echo "Executing SQL statements to create tables...\n";
+    $tablesCreated = 0;
+    $tablesExist = 0;
+    foreach ($sqlStatements as $statement) {
+        if (empty($statement)) continue;
+        try {
+            // Extract table name to check if it exists (basic check)
+            if (preg_match('/CREATE TABLE IF NOT EXISTS `?([a-zA-Z0-9_]+)`?/i', $statement, $matches)) {
+                $tableName = $matches[1];
+                $checkTableStmt = $dbPdo->query("SHOW TABLES LIKE '{$tableName}'");
+                if ($checkTableStmt->fetch()) {
+                    echo "Table '{$tableName}' already exists. Skipping creation from schema.\n";
+                    $tablesExist++;
+                    // If you want to ensure it's fully created or updated, you might drop and recreate,
+                    // but "IF NOT EXISTS" should handle it.
+                    // For this script, we assume IF NOT EXISTS is sufficient.
+                } else {
+                     $dbPdo->exec($statement);
+                     echo "Executed: CREATE TABLE {$tableName} ...\n";
+                     $tablesCreated++;
+                }
+            } else if (preg_match('/ALTER TABLE `?([a-zA-Z0-9_]+)`?/i', $statement, $matches)) {
+                 // For ALTER statements, execute them. More complex logic might be needed for idempotency.
+                 $dbPdo->exec($statement);
+                 echo "Executed: ALTER TABLE {$matches[1]} ...\n";
+            } else {
+                // For other statements like INSERT (if any in schema for basic data)
+                // $dbPdo->exec($statement);
+                // echo "Executed other statement: " . substr($statement, 0, 50) . "...\n";
+                // For now, we assume schema is mostly CREATE TABLE and ALTER TABLE
+            }
+        } catch (PDOException $e) {
+            echo "Error executing statement: " . substr($statement, 0, 100) . "...\n";
+            echo "SQL Error: " . $e->getMessage() . "\n";
+            // Decide if you want to stop or continue on error for a single statement
+        }
+    }
+    if ($tablesCreated > 0) echo "{$tablesCreated} new tables created successfully from schema.\n";
+    if ($tablesExist > 0) echo "{$tablesExist} tables already existed.\n";
+    echo "Table setup complete.\n";
+
+    // 5. Seed the services table using ServiceModel's populateInitialServices
+    echo "Attempting to populate initial services...\n";
+    // We need an instance of ServiceModel which uses Database::getInstance()
+    // Ensure ServiceModel is correctly autoloaded or required
+    if (!class_exists('Models\\ServiceModel')) {
+         echo "ERROR: ServiceModel class not found. Make sure it's autoloaded or required correctly.\n";
+    } else {
+        $serviceModel = new Models\ServiceModel(); // Uses the $dbPdo from Database::getInstance()
+        $servicesAddedCount = $serviceModel->populateInitialServices();
+        if ($servicesAddedCount !== false) {
+            echo "{$servicesAddedCount} initial services populated/verified in the 'services' table.\n";
+        } else {
+            echo "Failed to populate initial services or no new services were added.\n";
+        }
+    }
+
+    // 6. Give a default balance to new users, or update existing users for testing.
+    // For this setup, let's ensure new users get a starting balance. This is handled in AuthController::register.
+    // We can modify the registration process to add a default balance.
+    // For existing users, you might want to run a one-time update here if needed for testing.
+    // Example: $dbPdo->exec("UPDATE users SET balance = 100.00 WHERE balance = 0.00");
+    // echo "Checked/updated user balances for testing.\n";
+    // Let's modify the AuthController registration to give a starting balance.
+
+    echo "Database setup and initial seeding completed successfully!\n";
+
+} catch (PDOException $e) {
+    die("DATABASE SETUP FAILED: " . $e->getMessage() . "\n");
+} catch (Exception $e) {
+    die("AN ERROR OCCURRED: " . $e->getMessage() . "\n");
+}
+
+?>
