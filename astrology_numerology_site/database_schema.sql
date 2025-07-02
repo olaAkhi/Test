@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS `users` (
     `email` VARCHAR(100) NOT NULL UNIQUE,
     `password_hash` VARCHAR(255) NOT NULL,
     `balance` DECIMAL(10, 2) DEFAULT 0.00,
+    `is_active` BOOLEAN DEFAULT TRUE, -- Added for admin management
     `wants_daily_forecast` BOOLEAN DEFAULT TRUE,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -87,5 +88,37 @@ ALTER TABLE `services` ADD INDEX `idx_services_type` (`type`);
 ALTER TABLE `services` ADD INDEX `idx_services_category` (`category`);
 ALTER TABLE `user_services` ADD INDEX `idx_user_services_user_status` (`user_id`, `status`);
 
--- Consider adding an admin users table if backend administration is needed.
--- CREATE TABLE IF NOT EXISTS `admin_users` ( ... );
+-- Admin Users Table
+CREATE TABLE IF NOT EXISTS `admin_users` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `username` VARCHAR(50) NOT NULL UNIQUE,
+    `email` VARCHAR(100) NOT NULL UNIQUE,
+    `password_hash` VARCHAR(255) NOT NULL,
+    `role` ENUM('admin', 'super_admin') DEFAULT 'admin',
+    `is_active` BOOLEAN DEFAULT TRUE,
+    `last_login_at` TIMESTAMP NULL DEFAULT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Add index for admin username
+ALTER TABLE `admin_users` ADD INDEX `idx_admin_users_username` (`username`);
+
+-- Balance Audit Log Table
+CREATE TABLE IF NOT EXISTS `balance_audit_log` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT UNSIGNED NOT NULL,
+    `admin_user_id` INT UNSIGNED NOT NULL,
+    `amount_changed` DECIMAL(10, 2) NOT NULL COMMENT 'Positive for addition, negative for subtraction',
+    `old_balance` DECIMAL(10, 2) NOT NULL,
+    `new_balance` DECIMAL(10, 2) NOT NULL,
+    `reason` TEXT DEFAULT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`admin_user_id`) REFERENCES `admin_users`(`id`) ON DELETE RESTRICT -- Or SET NULL if admin can be deleted
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Add indexes for balance audit log
+ALTER TABLE `balance_audit_log` ADD INDEX `idx_bal_user_id` (`user_id`);
+ALTER TABLE `balance_audit_log` ADD INDEX `idx_bal_admin_user_id` (`admin_user_id`);
+ALTER TABLE `balance_audit_log` ADD INDEX `idx_bal_created_at` (`created_at`);

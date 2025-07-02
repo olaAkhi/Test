@@ -125,13 +125,38 @@ try {
         }
     }
 
-    // 6. Give a default balance to new users, or update existing users for testing.
-    // For this setup, let's ensure new users get a starting balance. This is handled in AuthController::register.
-    // We can modify the registration process to add a default balance.
-    // For existing users, you might want to run a one-time update here if needed for testing.
-    // Example: $dbPdo->exec("UPDATE users SET balance = 100.00 WHERE balance = 0.00");
-    // echo "Checked/updated user balances for testing.\n";
-    // Let's modify the AuthController registration to give a starting balance.
+    // 6. Seed initial admin user
+    echo "Seeding initial admin user...\n";
+    $adminUsername = 'superadmin';
+    $adminEmail = 'admin@astronumerology.example.com'; // Change this
+    $adminPassword = 'SuperSecretPassword123!'; // CHANGE THIS IMMEDIATELY AFTER SETUP
+    $adminPasswordHash = password_hash($adminPassword, PASSWORD_DEFAULT);
+    $adminRole = 'super_admin';
+
+    $stmt = $dbPdo->prepare("SELECT id FROM admin_users WHERE username = :username OR email = :email");
+    $stmt->bindParam(':username', $adminUsername);
+    $stmt->bindParam(':email', $adminEmail);
+    $stmt->execute();
+    if ($stmt->fetch()) {
+        echo "Admin user '{$adminUsername}' or email '{$adminEmail}' already exists. Skipping creation.\n";
+    } else {
+        $stmt = $dbPdo->prepare(
+            "INSERT INTO admin_users (username, email, password_hash, role, is_active)
+             VALUES (:username, :email, :password_hash, :role, TRUE)"
+        );
+        $stmt->bindParam(':username', $adminUsername);
+        $stmt->bindParam(':email', $adminEmail);
+        $stmt->bindParam(':password_hash', $adminPasswordHash);
+        $stmt->bindParam(':role', $adminRole);
+        if ($stmt->execute()) {
+            echo "Successfully created initial admin user '{$adminUsername}'.\n";
+            echo "IMPORTANT: Login with username '{$adminUsername}' and password '{$adminPassword}'. CHANGE THIS PASSWORD IMMEDIATELY.\n";
+        } else {
+            echo "ERROR: Failed to create initial admin user '{$adminUsername}'.\n";
+        }
+    }
+
+    // 7. User balance handling is now part of AuthController::register for new site users.
 
     echo "Database setup and initial seeding completed successfully!\n";
 

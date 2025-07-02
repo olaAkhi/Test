@@ -27,23 +27,112 @@ $userController = new Controllers\UserController();
 $page_content_file = null;
 $view_data = []; // Data to pass to the view
 
-// Fetch logged-in user data if a session exists, to make it available globally to views
-if (isset($_SESSION['user_id'])) {
-    $currentUserData = $authController->getUserData($_SESSION['user_id']);
-    if ($currentUserData) {
-        $view_data['currentUser'] = $currentUserData;
-    } else {
-        // User in session but not in DB? Force logout.
-        $authController->logout();
-        // logout() calls exit, so script stops here.
+// Determine if it's an admin module request
+$module = $_GET['module'] ?? 'site'; // Default to 'site'
+
+if ($module === 'admin') {
+    // --- ADMIN MODULE LOGIC ---
+    $adminAction = $_GET['action'] ?? 'login'; // Default admin action is login page
+
+    // Instantiate Admin Controllers (already done globally for now, but could be conditional)
+    // $adminAuthController = new Controllers\AdminAuthController();
+    // $adminDashboardController = new Controllers\AdminDashboardController(); // etc.
+    $adminUserController = new Controllers\AdminUserController(); // Instantiate AdminUserController
+
+    // Handle Admin POST requests
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        Core\Csrf::checkPostToken(); // CSRF check for all POST requests
+        if ($adminAction === 'login_process') {
+            $adminAuthController->login(); // Handles redirect
+            exit;
+        } elseif ($adminAction === 'toggle_user_status') {
+            $adminUserController->toggleUserStatus(); // Handles redirect
+            exit;
+        } elseif ($adminAction === 'adjust_user_balance') {
+            $adminUserController->adjustUserBalance(); // Handles redirect
+            exit;
+        }
+        // Add other admin POST actions here
     }
-}
 
-// Handle POST requests
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    Core\Csrf::checkPostToken(); // Check CSRF token for all POST requests
+    // Admin GET requests / Page Loads
+    // Protected routes first, then public (like login)
+    if ($adminAction !== 'login' && $adminAction !== 'login_process') {
+        if (!Controllers\AdminAuthController::isLoggedInAndActive()) {
+            // If not logged in or session timed out, redirect to admin login
+            // Store intended action to redirect after login? (optional enhancement)
+            // $_SESSION['admin_redirect_after_login'] = $_SERVER['REQUEST_URI'];
+            header('Location: index.php?module=admin&action=login');
+            exit;
+        }
+    }
 
-    if ($action === 'register_process') {
+    switch ($adminAction) {
+        case 'login':
+            $view_data = $adminAuthController->showLoginForm();
+            $page_content_file = '../templates/admin/login.php'; // Admin login doesn't use main admin layout
+            break;
+        case 'logout':
+            $adminAuthController->logout(); // Handles redirect
+            exit;
+        case 'dashboard':
+            $adminDashboardController = new Controllers\AdminDashboardController();
+            $view_data = $adminDashboardController->index();
+            // $view_data already contains pageTitle and adminUsername from controller
+            $page_content_file = '../templates/admin/dashboard.php'; // Uses admin layout
+            break;
+        case 'list_users':
+            $view_data = $adminUserController->listUsers();
+            $page_content_file = '../templates/admin/users/list.php';
+            break;
+        case 'view_user_orders':
+            $view_data = $adminUserController->viewUserOrders();
+            $page_content_file = '../templates/admin/users/user_orders.php';
+            break;
+        // Add other admin GET actions here (e.g., edit_service)
+        default:
+            http_response_code(404);
+            $view_data['pageTitle'] = 'Admin Page Not Found';
+            $view_data['errorMessage'] = 'The requested admin page or action was not found.';
+            $page_content_file = '../templates/admin/404.php'; // Create admin-specific 404
+            break;
+    }
+
+    // Render admin page (either login page or a page within the admin layout)
+    if ($page_content_file) {
+        if ($adminAction === 'login') { // Login page has its own full HTML structure
+            extract($view_data);
+            require_once $page_content_file;
+        } else { // Other admin pages use the admin layout
+            // Ensure $view_data['currentUser'] for main site doesn't interfere if admin layout needs it
+            // (It shouldn't, admin layout is separate)
+            extract($view_data);
+            require_once '../templates/admin/layouts/main.php'; // Admin layout includes $page_content_file
+        }
+    } else {
+        // Should not happen if default case leads to 404 page
+        echo "Admin page content file not set for action: " . htmlspecialchars($adminAction);
+    }
+
+} else {
+    // --- SITE MODULE LOGIC (existing logic) ---
+    // Fetch logged-in user data if a session exists, to make it available globally to views
+    if (isset($_SESSION['user_id'])) {
+        $currentUserData = $authController->getUserData($_SESSION['user_id']);
+        if ($currentUserData) {
+            $view_data['currentUser'] = $currentUserData;
+        } else {
+            // User in session but not in DB? Force logout.
+            $authController->logout();
+            // logout() calls exit, so script stops here.
+        }
+    }
+
+    // Handle POST requests
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        Core\Csrf::checkPostToken(); // Check CSRF token for all POST requests
+
+        if ($action === 'register_process') {
         $authController->register(); // Handles redirect
         exit;
     } elseif ($action === 'login_process') {
