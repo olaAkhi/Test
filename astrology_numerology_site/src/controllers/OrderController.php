@@ -40,6 +40,18 @@ class OrderController {
         $serviceId = filter_input(INPUT_POST, 'service_id', FILTER_VALIDATE_INT);
         $inputData = $_POST['input_data'] ?? []; // Array of input fields from the form
 
+        // Check global emergency pause first
+        // This requires AdminServiceModel to be accessible or a shared settings service
+        // For simplicity, let's assume we can instantiate AdminServiceModel here or have a helper
+        $adminServiceModel = new \Models\AdminServiceModel(); // Temporary instantiation
+        $emergencyPause = $adminServiceModel->getGlobalSetting('emergency_pause_all_purchases');
+        if ($emergencyPause === '1') {
+            $_SESSION['error_message'] = "Service purchases are temporarily disabled. Please try again later.";
+            // Redirect to services page or homepage
+            header('Location: index.php?action=services');
+            exit;
+        }
+
         if (!$serviceId) {
             $_SESSION['error_message'] = "Invalid service selected.";
             header('Location: index.php?action=services');
@@ -47,9 +59,12 @@ class OrderController {
         }
 
         // Fetch service details (especially price and required input fields)
-        $service = $this->serviceModel->getServiceById($serviceId);
-        if (!$service) {
-            $_SESSION['error_message'] = "Service not found.";
+        $service = $this->serviceModel->getServiceById($serviceId); // getServiceById should only return active services by default
+                                                                    // OR it returns all, and we check is_active here.
+                                                                    // Let's assume getServiceById in ServiceModel already filters by is_active=true
+                                                                    // If not, we need to add the check here.
+        if (!$service || !$service['is_active']) { // Added check for $service['is_active']
+            $_SESSION['error_message'] = "This service is currently unavailable or does not exist.";
             header('Location: index.php?action=services');
             exit;
         }

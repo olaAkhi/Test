@@ -39,13 +39,17 @@ CREATE TABLE IF NOT EXISTS `user_services` (
     `service_id` INT UNSIGNED NOT NULL,
     `purchase_date` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `input_data` JSON DEFAULT NULL, -- JSON object storing user-provided data for this specific service instance
-    `status` ENUM('pending', 'processing', 'completed', 'failed', 'failed_generation') DEFAULT 'pending', -- Added 'failed_generation'
+    `status` ENUM('pending', 'processing', 'completed', 'failed', 'failed_generation', 'fulfilled', 'cancelled') DEFAULT 'pending', -- Added more statuses
     `result_json_data` TEXT DEFAULT NULL, -- Stores the JSON report data directly
+    `admin_notes` TEXT DEFAULT NULL,
+    `last_status_change_by_admin_id` INT UNSIGNED DEFAULT NULL,
+    `last_status_change_at` TIMESTAMP NULL DEFAULT NULL,
     `viewed_at` TIMESTAMP NULL DEFAULT NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`service_id`) REFERENCES `services`(`id`) ON DELETE RESTRICT -- Or CASCADE if services can be deleted
+    FOREIGN KEY (`service_id`) REFERENCES `services`(`id`) ON DELETE RESTRICT, -- Or CASCADE if services can be deleted
+    FOREIGN KEY (`last_status_change_by_admin_id`) REFERENCES `admin_users`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Daily Forecast Log (Optional, if we want to track sent forecasts)
@@ -122,3 +126,29 @@ CREATE TABLE IF NOT EXISTS `balance_audit_log` (
 ALTER TABLE `balance_audit_log` ADD INDEX `idx_bal_user_id` (`user_id`);
 ALTER TABLE `balance_audit_log` ADD INDEX `idx_bal_admin_user_id` (`admin_user_id`);
 ALTER TABLE `balance_audit_log` ADD INDEX `idx_bal_created_at` (`created_at`);
+
+-- Order Status Log Table
+CREATE TABLE IF NOT EXISTS `order_status_log` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `user_service_id` INT UNSIGNED NOT NULL,
+    `admin_user_id` INT UNSIGNED DEFAULT NULL COMMENT 'Admin who made the change, NULL if system change',
+    `old_status` VARCHAR(50) NOT NULL,
+    `new_status` VARCHAR(50) NOT NULL,
+    `change_reason` TEXT DEFAULT NULL COMMENT 'Reason provided by admin or system',
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`user_service_id`) REFERENCES `user_services`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`admin_user_id`) REFERENCES `admin_users`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Add indexes for order status log
+ALTER TABLE `order_status_log` ADD INDEX `idx_osl_user_service_id` (`user_service_id`);
+ALTER TABLE `order_status_log` ADD INDEX `idx_osl_admin_user_id` (`admin_user_id`);
+ALTER TABLE `order_status_log` ADD INDEX `idx_osl_created_at` (`created_at`);
+
+-- Application Settings Table
+CREATE TABLE IF NOT EXISTS `app_settings` (
+    `setting_key` VARCHAR(100) NOT NULL PRIMARY KEY,
+    `setting_value` TEXT DEFAULT NULL,
+    `description` VARCHAR(255) DEFAULT NULL,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

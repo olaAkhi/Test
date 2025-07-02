@@ -34,10 +34,10 @@ if ($module === 'admin') {
     // --- ADMIN MODULE LOGIC ---
     $adminAction = $_GET['action'] ?? 'login'; // Default admin action is login page
 
-    // Instantiate Admin Controllers (already done globally for now, but could be conditional)
-    // $adminAuthController = new Controllers\AdminAuthController();
-    // $adminDashboardController = new Controllers\AdminDashboardController(); // etc.
-    $adminUserController = new Controllers\AdminUserController(); // Instantiate AdminUserController
+    // Instantiate Admin Controllers
+    // $adminAuthController, $userController are already instantiated globally for both site/admin
+    $adminOrderController = new Controllers\AdminOrderController();
+    $adminServiceController = new Controllers\AdminServiceController(); // Instantiate AdminServiceController
 
     // Handle Admin POST requests
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -50,6 +50,15 @@ if ($module === 'admin') {
             exit;
         } elseif ($adminAction === 'adjust_user_balance') {
             $adminUserController->adjustUserBalance(); // Handles redirect
+            exit;
+        } elseif ($adminAction === 'update_order_status') {
+            $adminOrderController->updateOrderStatus(); // Handles redirect
+            exit;
+        } elseif ($adminAction === 'toggle_service_status') {
+            $adminServiceController->toggleServiceStatus(); // Handles redirect
+            exit;
+        } elseif ($adminAction === 'update_global_setting') {
+            $adminServiceController->updateGlobalSetting(); // Handles redirect
             exit;
         }
         // Add other admin POST actions here
@@ -88,6 +97,22 @@ if ($module === 'admin') {
         case 'view_user_orders':
             $view_data = $adminUserController->viewUserOrders();
             $page_content_file = '../templates/admin/users/user_orders.php';
+            break;
+        case 'list_orders':
+            $view_data = $adminOrderController->listOrders();
+            $page_content_file = '../templates/admin/orders/list.php'; // To be created
+            break;
+        case 'view_order_detail':
+            $view_data = $adminOrderController->viewOrderDetail();
+            $page_content_file = '../templates/admin/orders/detail.php';
+            break;
+        case 'list_services_admin': // Distinct action name for admin view of services
+            $view_data = $adminServiceController->listServices();
+            $page_content_file = '../templates/admin/services/list.php'; // To be created
+            break;
+        case 'manage_global_settings':
+            $view_data = $adminServiceController->manageGlobalSettings();
+            $page_content_file = '../templates/admin/services/settings.php'; // To be created
             break;
         // Add other admin GET actions here (e.g., edit_service)
         default:

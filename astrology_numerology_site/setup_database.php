@@ -158,6 +158,34 @@ try {
 
     // 7. User balance handling is now part of AuthController::register for new site users.
 
+    // 8. Seed initial application settings
+    echo "Seeding initial application settings...\n";
+    $settingsToSeed = [
+        ['emergency_pause_all_purchases', '0', 'Global switch to pause all new service purchases. 0 = false, 1 = true.'],
+        ['site_maintenance_mode', '0', 'Puts the user-facing site into maintenance mode. 0 = false, 1 = true.'],
+    ];
+
+    $stmtSetting = $dbPdo->prepare("INSERT INTO app_settings (setting_key, setting_value, description) VALUES (:key, :value, :desc) ON DUPLICATE KEY UPDATE setting_key=setting_key"); // ON DUPLICATE to avoid error if re-run
+    foreach ($settingsToSeed as $setting) {
+        // Check if setting already exists, only insert if not (or use ON DUPLICATE KEY UPDATE)
+        $checkStmt = $dbPdo->prepare("SELECT setting_key FROM app_settings WHERE setting_key = :key");
+        $checkStmt->bindParam(':key', $setting[0]);
+        $checkStmt->execute();
+        if (!$checkStmt->fetch()) {
+            $stmtSetting->bindParam(':key', $setting[0]);
+            $stmtSetting->bindParam(':value', $setting[1]);
+            $stmtSetting->bindParam(':desc', $setting[2]);
+            if ($stmtSetting->execute()) {
+                echo "Setting '{$setting[0]}' seeded successfully.\n";
+            } else {
+                echo "ERROR: Failed to seed setting '{$setting[0]}'.\n";
+            }
+        } else {
+             echo "Setting '{$setting[0]}' already exists. Skipping.\n";
+        }
+    }
+
+
     echo "Database setup and initial seeding completed successfully!\n";
 
 } catch (PDOException $e) {
