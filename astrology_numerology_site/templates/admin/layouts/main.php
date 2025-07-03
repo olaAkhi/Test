@@ -167,6 +167,8 @@
 
     <!-- Tabler Core JS -->
     <script src="../public/admin_assets/tabler/js/tabler.min.js"></script>
+    <!-- Chart.js via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
     <!-- Custom Admin JS (optional) -->
     <!-- <script src="../public/admin_assets/js/admin_custom.js"></script> -->
 </body>

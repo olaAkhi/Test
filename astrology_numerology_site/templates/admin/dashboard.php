@@ -1,7 +1,12 @@
 <?php
 // This template is included by templates/admin/layouts/main.php
 // Expected variables from $view_data (set by AdminDashboardController and extracted in index.php):
-// $pageTitle, $adminUsername, $totalSiteUsers, $totalOrdersToday, $pendingReports, $totalRevenueMonth
+// $pageTitle, $adminUsername,
+// $dailySignups, $monthlySignups, $totalActiveUsers,
+// $dailyRevenue, $monthlyRevenue,
+// $ordersToday, $pendingOrders, $totalOrders,
+// $popularServices,
+// $revenueChartLabels, $revenueChartData (these are JSON encoded)
 ?>
 
 <div class="row row-deck row-cards">
@@ -9,29 +14,29 @@
         <div class="card card-md">
             <div class="card-body">
                 <h3 class="card-title">Welcome, <?php echo htmlspecialchars($adminUsername ?? 'Admin'); ?>!</h3>
-                <p class="text-muted">This is your AstroNumero Admin Dashboard. From here you can manage users, services, and orders.</p>
-                <p>Current system time: <?php echo date('Y-m-d H:i:s T'); ?></p>
+                <p class="text-muted">Overview of site activity. Current system time: <?php echo date('Y-m-d H:i:s T'); ?></p>
             </div>
         </div>
     </div>
 
-    <!-- Placeholder Stats Cards -->
+    <!-- Stats Cards -->
     <div class="col-sm-6 col-lg-3">
         <div class="card">
             <div class="card-body">
                 <div class="d-flex align-items-center">
-                    <div class="subheader">Site Users</div>
+                    <div class="subheader">Daily Signups</div>
                 </div>
-                <div class="h1 mb-3"><?php echo htmlspecialchars($totalSiteUsers ?? 0); ?></div>
-                <div class="d-flex mb-2">
-                    <div>Conversion rate</div>
-                    <div class="ms-auto">
-                        <span class="text-green d-inline-flex align-items-center lh-1">
-                            0% <!-- Placeholder -->
-                            <svg xmlns="http://www.w3.org/2000/svg" class="icon ms-1" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><polyline points="3 17 9 11 13 15 21 7"></polyline><polyline points="14 7 21 7 21 14"></polyline></svg>
-                        </span>
-                    </div>
+                <div class="h1 mb-3"><?php echo htmlspecialchars($dailySignups ?? 0); ?></div>
+            </div>
+        </div>
+    </div>
+     <div class="col-sm-6 col-lg-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="subheader">Monthly Signups</div>
                 </div>
+                <div class="h1 mb-3"><?php echo htmlspecialchars($monthlySignups ?? 0); ?></div>
             </div>
         </div>
     </div>
@@ -39,36 +44,30 @@
         <div class="card">
             <div class="card-body">
                 <div class="d-flex align-items-center">
-                    <div class="subheader">Orders Today</div>
+                    <div class="subheader">Total Active Users</div>
                 </div>
-                <div class="h1 mb-3"><?php echo htmlspecialchars($totalOrdersToday ?? 0); ?></div>
-                <div class="d-flex mb-2">
-                    <div>vs Yesterday</div>
-                    <div class="ms-auto">
-                        <span class="text-red d-inline-flex align-items-center lh-1">
-                            -0% <!-- Placeholder -->
-                             <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-trending-down" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"> <path stroke="none" d="M0 0h24v24H0z" fill="none"/> <polyline points="3 7 9 13 13 9 21 17" /> <polyline points="21 10 21 17 14 17" /> </svg>
-                        </span>
-                    </div>
-                </div>
+                <div class="h1 mb-3"><?php echo htmlspecialchars($totalActiveUsers ?? 0); ?></div>
             </div>
         </div>
     </div>
+     <div class="col-sm-6 col-lg-3"> <!-- Placeholder, can be another metric like total services -->
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="subheader">Total Orders</div>
+                </div>
+                <div class="h1 mb-3"><?php echo htmlspecialchars($totalOrders ?? 0); ?></div>
+            </div>
+        </div>
+    </div>
+
     <div class="col-sm-6 col-lg-3">
         <div class="card">
             <div class="card-body">
                 <div class="d-flex align-items-center">
-                    <div class="subheader">Pending Reports</div>
+                    <div class="subheader">Revenue (Today)</div>
                 </div>
-                <div class="h1 mb-3"><?php echo htmlspecialchars($pendingReports ?? 0); ?></div>
-                <div class="d-flex mb-2">
-                    <div>Total Pending</div>
-                    <div class="ms-auto">
-                        <!-- <span class="text-yellow d-inline-flex align-items-center lh-1"> -->
-                            <!-- 0% -->
-                        <!-- </span> -->
-                    </div>
-                </div>
+                <div class="h1 mb-3">$<?php echo htmlspecialchars(number_format($dailyRevenue ?? 0.00, 2)); ?></div>
             </div>
         </div>
     </div>
@@ -78,23 +77,114 @@
                 <div class="d-flex align-items-center">
                     <div class="subheader">Revenue (This Month)</div>
                 </div>
-                <div class="h1 mb-3">$<?php echo htmlspecialchars(number_format($totalRevenueMonth ?? 0.00, 2)); ?></div>
-                <div class="d-flex mb-2">
-                    <div>vs Last Month</div>
-                     <div class="ms-auto">
-                        <span class="text-green d-inline-flex align-items-center lh-1">
-                            +0% <!-- Placeholder -->
-                            <svg xmlns="http://www.w3.org/2000/svg" class="icon ms-1" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><polyline points="3 17 9 11 13 15 21 7"></polyline><polyline points="14 7 21 7 21 14"></polyline></svg>
-                        </span>
-                    </div>
+                <div class="h1 mb-3">$<?php echo htmlspecialchars(number_format($monthlyRevenue ?? 0.00, 2)); ?></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="subheader">Orders Today</div>
                 </div>
+                <div class="h1 mb-3"><?php echo htmlspecialchars($ordersToday ?? 0); ?></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="subheader">Pending Orders</div>
+                </div>
+                <div class="h1 mb-3"><?php echo htmlspecialchars($pendingOrders ?? 0); ?></div>
             </div>
         </div>
     </div>
 
-    <div class="col-12">
-        <p class="text-muted mt-3">
-            Note: All statistics above are placeholders. Real data will be populated as models are updated.
-        </p>
+    <!-- Chart Section -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-body">
+                <h3 class="card-title">Revenue Last 7 Days</h3>
+                <canvas id="revenueChart" height="150"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Popular Services Section -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Most Popular Services</h3>
+            </div>
+            <div class="card-body">
+                <?php if (!empty($popularServices)): ?>
+                    <ul class="list-group list-group-flush">
+                        <?php foreach($popularServices as $service): ?>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <?php echo htmlspecialchars($service['service_name']); ?>
+                                <span class="badge bg-primary rounded-pill"><?php echo htmlspecialchars($service['purchase_count']); ?></span>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                <?php else: ?>
+                    <p class="text-muted">No purchase data available for popular services yet.</p>
+                <?php endif; ?>
+            </div>
+        </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const ctx = document.getElementById('revenueChart');
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'line', // or 'bar'
+            data: {
+                labels: <?php echo $revenueChartLabels ?? '[]'; ?>, // From controller, JSON encoded
+                datasets: [{
+                    label: 'Daily Revenue ($)',
+                    data: <?php echo $revenueChartData ?? '[]'; ?>, // From controller, JSON encoded
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    tension: 0.1,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value, index, values) {
+                                return '$' + value.toFixed(2);
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed.y);
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    } else {
+        console.warn('revenueChart canvas element not found');
+    }
+});
+</script>
