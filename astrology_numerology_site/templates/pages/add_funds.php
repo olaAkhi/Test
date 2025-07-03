@@ -15,14 +15,15 @@
         </div>
 
         <h5 class="mt-4">Simulate Adding Funds (For Testing Only - No Real Transaction)</h5>
-        <form action="index.php?action=simulate_add_funds_process" method="POST" class="row g-3 align-items-end">
+        <form action="index.php?action=process_simulated_deposit" method="POST" class="row g-3 align-items-end needs-confirmation" data-confirm-message="This is a test feature. Are you sure you want to simulate adding funds?">
+            <?php echo Core\Csrf::getInputField(); ?>
             <div class="col-md-4">
                 <label for="amount" class="form-label">Amount to Add:</label>
                 <input type="number" class="form-control" id="amount" name="amount" min="5" max="500" step="0.01" value="20.00" required>
             </div>
             <div class="col-md-4">
-                 <button type="submit" class="btn btn-primary" disabled>Simulate Add (Feature Disabled)</button>
-                 <small class="d-block text-muted">This button would call a test script to update your balance.</small>
+                 <button type="submit" class="btn btn-primary">Simulate Add Funds</button>
+                 <!-- <small class="d-block text-muted">This button is for testing balance updates.</small> -->
             </div>
         </form>
 

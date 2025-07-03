@@ -39,11 +39,12 @@ CREATE TABLE IF NOT EXISTS `user_services` (
     `service_id` INT UNSIGNED NOT NULL,
     `purchase_date` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `input_data` JSON DEFAULT NULL, -- JSON object storing user-provided data for this specific service instance
-    `status` ENUM('pending', 'processing', 'completed', 'failed', 'failed_generation', 'fulfilled', 'cancelled') DEFAULT 'pending', -- Added more statuses
+    `status` ENUM('pending', 'processing', 'completed', 'failed', 'failed_generation', 'fulfilled', 'cancelled', 'refunded', 'partially_refunded') DEFAULT 'pending', -- Added refund statuses
     `result_json_data` TEXT DEFAULT NULL, -- Stores the JSON report data directly
     `admin_notes` TEXT DEFAULT NULL,
     `last_status_change_by_admin_id` INT UNSIGNED DEFAULT NULL,
     `last_status_change_at` TIMESTAMP NULL DEFAULT NULL,
+    `refunded_amount` DECIMAL(10,2) DEFAULT 0.00,
     `viewed_at` TIMESTAMP NULL DEFAULT NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

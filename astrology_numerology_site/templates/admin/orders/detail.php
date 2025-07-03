@@ -67,10 +67,29 @@
                             </div>
                         </div>
                         <button type="submit" class="btn btn-primary">Update Status & Notes</button>
+                        <?php
+                        // Calculate max refundable for button display logic
+                        $originalPriceForRefundCheck = (float)($order['service_price'] ?? 0);
+                        $currentRefundedForRefundCheck = (float)($order['refunded_amount'] ?? 0);
+                        $maxRefundableForButton = $originalPriceForRefundCheck - $currentRefundedForRefundCheck;
+                        if ($maxRefundableForButton > 0 && !in_array(strtolower($order['status']), ['refunded'])): // Show refund button if there's amount to refund and not already fully 'refunded'
+                        ?>
+                            <a href="index.php?module=admin&action=show_refund_form&order_id=<?php echo htmlspecialchars($order['id']); ?>" class="btn btn-warning ms-2">
+                                Process Refund
+                            </a>
+                        <?php elseif(in_array(strtolower($order['status']), ['refunded', 'partially_refunded']) && $maxRefundableForButton <=0): ?>
+                             <span class="ms-2 text-success">Fully Refunded</span>
+                        <?php elseif(in_array(strtolower($order['status']), ['partially_refunded']) && $maxRefundableForButton > 0): ?>
+                             <a href="index.php?module=admin&action=show_refund_form&order_id=<?php echo htmlspecialchars($order['id']); ?>" class="btn btn-warning ms-2">
+                                Process Additional Refund
+                            </a>
+                        <?php endif; ?>
                     </form>
                     <hr>
                      <p><strong>Last Status Change By:</strong> <?php echo htmlspecialchars($order['last_change_admin_username'] ?? ($order['last_status_change_by_admin_id'] ? 'Admin ID: '.$order['last_status_change_by_admin_id'] : 'System/Initial')); ?></p>
                     <p><strong>Last Status Change At:</strong> <?php echo $order['last_status_change_at'] ? htmlspecialchars(date("F j, Y, g:i a", strtotime($order['last_status_change_at']))) : 'N/A'; ?></p>
+                    <p><strong>Amount Refunded:</strong> $<?php echo htmlspecialchars(number_format($order['refunded_amount'] ?? 0.00, 2)); ?></p>
+
 
                 <?php else: ?>
                     <p class="text-danger">Order details could not be loaded.</p>

@@ -73,5 +73,74 @@ class UserController {
             return [];
         }
     }
+
+    public function viewTransactionHistory() {
+        if (!isset($_SESSION['user_id'])) {
+            $_SESSION['error_message'] = "You must be logged in to view your transaction history.";
+            header('Location: index.php?action=login&redirect=transaction_history');
+            exit;
+        }
+        $userId = (int)$_SESSION['user_id'];
+        // UserModel is needed. If not already a property, instantiate it.
+        // Assuming $this->userModel exists or we add it to constructor.
+        // For now, let's instantiate it here if not a property.
+        $userModel = new \Models\UserModel();
+
+
+        $page = filter_input(INPUT_GET, 'page', FILTER_VALIDATE_INT, ['options' => ['default' => 1, 'min_range' => 1]]);
+        $perPage = 15; // Or make configurable
+
+        $transactions = $userModel->getUserTransactions($userId, $page, $perPage);
+        $totalTransactions = $userModel->countUserTransactions($userId);
+        $totalPages = ceil($totalTransactions / $perPage);
+
+        return [
+            'pageTitle' => 'Your Transaction History',
+            'transactions' => $transactions,
+            'totalPages' => $totalPages,
+            'currentPage' => $page,
+            'totalTransactions' => $totalTransactions
+            // 'currentUser' is already added globally by index.php if user is logged in
+        ];
+    }
+
+    public function processSimulatedDeposit() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $_SESSION['error_message'] = "Invalid request method.";
+            header('Location: index.php?action=add_funds'); // Or dashboard
+            exit;
+        }
+        // CSRF is checked globally in index.php
+
+        if (!isset($_SESSION['user_id'])) {
+            $_SESSION['error_message'] = "You must be logged in to add funds.";
+            header('Location: index.php?action=login');
+            exit;
+        }
+        $userId = (int)$_SESSION['user_id'];
+        $amount = filter_input(INPUT_POST, 'amount', FILTER_VALIDATE_FLOAT);
+
+        if ($amount === false || $amount <= 0) {
+            $_SESSION['error_message'] = "Invalid deposit amount. Please enter a positive number.";
+            header('Location: index.php?action=add_funds');
+            exit;
+        }
+
+        // Ensure UserModel is available
+        $userModel = new \Models\UserModel();
+        $description = "Simulated deposit of $" . number_format($amount, 2);
+
+        if ($userModel->addDeposit($userId, $amount, $description)) {
+            $_SESSION['success_message'] = "Successfully added $" . number_format($amount, 2) . " to your balance (Simulated).";
+            // Update currentUser in session if it's stored there, or rely on next full fetch
+            if(isset($_SESSION['currentUser'])) { // This assumes index.php stored it
+                 $_SESSION['currentUser']['balance'] += $amount;
+            }
+        } else {
+            $_SESSION['error_message'] = "Failed to process simulated deposit. Please try again.";
+        }
+        header('Location: index.php?action=add_funds'); // Or dashboard
+        exit;
+    }
 }
 ?>

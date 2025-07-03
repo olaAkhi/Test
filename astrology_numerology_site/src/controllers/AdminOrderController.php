@@ -139,5 +139,75 @@ class AdminOrderController {
         header("Location: index.php?module=admin&action=view_order_detail&order_id={$userServicesId}");
         exit;
     }
+
+    public function showRefundForm() {
+        $userServicesId = filter_input(INPUT_GET, 'order_id', FILTER_VALIDATE_INT);
+        if (!$userServicesId) {
+            $_SESSION['admin_error_message'] = 'Invalid Order ID for refund.';
+            header('Location: index.php?module=admin&action=list_orders');
+            exit;
+        }
+
+        $order = $this->adminOrderModel->getUserServiceById($userServicesId); // Fetches order with service_price
+        if (!$order) {
+            $_SESSION['admin_error_message'] = 'Order not found for refund.';
+            header('Location: index.php?module=admin&action=list_orders');
+            exit;
+        }
+
+        // Calculate max refundable amount
+        $originalPrice = (float)($order['service_price'] ?? 0); // Assuming service_price is fetched
+        $currentRefundedAmount = (float)($order['refunded_amount'] ?? 0);
+        $maxRefundable = $originalPrice - $currentRefundedAmount;
+
+        if ($maxRefundable <= 0 && $originalPrice > 0) { // Check if already fully refunded or price was 0
+             $_SESSION['admin_warning_message'] = 'This order has already been fully refunded or had a zero price.';
+             // Allow viewing the form but it might be non-interactive or just informative
+        }
+
+
+        return [
+            'pageTitle' => 'Process Refund for Order #' . htmlspecialchars($order['id']),
+            'order' => $order,
+            'maxRefundable' => $maxRefundable,
+            'originalPrice' => $originalPrice
+        ];
+    }
+
+    public function processRefundRequest() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $_SESSION['admin_error_message'] = 'Invalid request method.';
+            header('Location: index.php?module=admin&action=list_orders');
+            exit;
+        }
+        // CSRF is checked globally
+
+        $userServicesId = filter_input(INPUT_POST, 'order_id', FILTER_VALIDATE_INT);
+        $refundAmount = filter_input(INPUT_POST, 'refund_amount', FILTER_VALIDATE_FLOAT);
+        $reason = trim(filter_input(INPUT_POST, 'reason', FILTER_SANITIZE_STRING) ?? '');
+        $adminUserId = $_SESSION['admin_user_id'];
+
+        if (!$userServicesId || $refundAmount === false || empty($reason)) {
+            $_SESSION['admin_error_message'] = 'Invalid input for refund. Order ID, amount, and reason are required.';
+            header('Location: index.php?module=admin&action=show_refund_form&order_id=' . $userServicesId);
+            exit;
+        }
+        if ($refundAmount <= 0) {
+            $_SESSION['admin_error_message'] = 'Refund amount must be a positive value.';
+            header('Location: index.php?module=admin&action=show_refund_form&order_id=' . $userServicesId);
+            exit;
+        }
+
+        $result = $this->adminOrderModel->processRefund($userServicesId, $refundAmount, $adminUserId, $reason);
+
+        if ($result === true) {
+            $_SESSION['admin_success_message'] = 'Refund of $' . number_format($refundAmount, 2) . ' processed successfully for order #' . $userServicesId . '.';
+        } else {
+            $_SESSION['admin_error_message'] = 'Refund processing failed: ' . htmlspecialchars($result); // $result contains error message from model
+        }
+
+        header('Location: index.php?module=admin&action=view_order_detail&order_id=' . $userServicesId);
+        exit;
+    }
 }
 ?>

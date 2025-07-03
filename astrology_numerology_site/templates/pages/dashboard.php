@@ -14,7 +14,10 @@
                 <p><strong>Username:</strong> <?php echo htmlspecialchars($user['username']); ?></p>
                 <p><strong>Email:</strong> <?php echo htmlspecialchars($user['email']); ?></p>
                 <p><strong>Current Balance:</strong> $<?php echo htmlspecialchars(number_format($user['balance'] ?? 0.00, 2)); ?></p>
-                <a href="index.php?action=add_funds" class="btn btn-success">Add Funds</a>
+                <div class="btn-group mt-2">
+                    <a href="index.php?action=add_funds" class="btn btn-success">Add Funds</a>
+                    <a href="index.php?action=transaction_history" class="btn btn-info">View Transaction History</a>
+                </div>
             </div>
         </div>
 

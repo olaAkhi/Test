@@ -60,6 +60,9 @@ if ($module === 'admin') {
         } elseif ($adminAction === 'update_global_setting') {
             $adminServiceController->updateGlobalSetting(); // Handles redirect
             exit;
+        } elseif ($adminAction === 'process_refund_request') {
+            $adminOrderController->processRefundRequest(); // Handles redirect
+            exit;
         }
         // Add other admin POST actions here
     }
@@ -112,7 +115,11 @@ if ($module === 'admin') {
             break;
         case 'manage_global_settings':
             $view_data = $adminServiceController->manageGlobalSettings();
-            $page_content_file = '../templates/admin/services/settings.php'; // To be created
+            $page_content_file = '../templates/admin/services/settings.php';
+            break;
+        case 'show_refund_form':
+            $view_data = $adminOrderController->showRefundForm();
+            $page_content_file = '../templates/admin/orders/refund_form.php'; // To be created
             break;
         // Add other admin GET actions here (e.g., edit_service)
         default:
@@ -169,6 +176,9 @@ if ($module === 'admin') {
     } elseif ($action === 'update_forecast_settings') {
         $userController->updateForecastSettings(); // Handles redirect
         exit;
+        } elseif ($action === 'process_simulated_deposit') { // Renamed from simulate_add_funds_process
+            $userController->processSimulatedDeposit(); // Handles redirect
+            exit;
     }
     // Add other POST actions here if needed
 }
@@ -280,7 +290,15 @@ switch ($action) {
             exit;
         }
         $view_data['pageTitle'] = 'Add Funds';
-        $page_content_file = '../templates/pages/add_funds.php'; // Create this template
+        $page_content_file = '../templates/pages/add_funds.php';
+        break;
+    case 'transaction_history':
+        if (!isset($_SESSION['user_id'])) { // Redundant check as controller does it, but good for direct route access attempt
+            header('Location: index.php?action=login&message=login_required&redirect=transaction_history');
+            exit;
+        }
+        $view_data = $userController->viewTransactionHistory();
+        $page_content_file = '../templates/pages/transaction_history.php';
         break;
     default:
         http_response_code(404);
