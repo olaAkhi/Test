@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.5/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true">
+    <testsuites>
+        <testsuite name="Unit Tests">
+            <directory suffix="Test.php">./tests/Unit</directory>
+        </testsuite>
+        <!-- You can add more testsuites, e.g., for Integration tests -->
+        <!--
+        <testsuite name="Integration Tests">
+            <directory suffix="Test.php">./tests/Integration</directory>
+        </testsuite>
+        -->
+    </testsuites>
+
+    <coverage processUncoveredFiles="true">
+        <include>
+            <directory suffix=".php">./src</directory>
+        </include>
+        <exclude>
+            <directory suffix=".php">./src/core</directory> <!-- Exclude core bootstrap/config like files if not easily testable in unit context -->
+        </exclude>
+    </coverage>
+
+    <php>
+        <!-- Define any constants or global variables needed for tests -->
+        <!-- Example: <const name="APP_ENV" value="testing"/> -->
+        <!-- For database tests, you might define test DB credentials here,
+             or use a separate config file loaded by a test bootstrap. -->
+    </php>
+</phpunit>
